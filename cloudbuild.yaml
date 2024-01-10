@@ -1,0 +1,18 @@
+steps:
+  - id: BUILD-APP
+    name: 'gcr.io/cloud-builders/docker'
+    entrypoint: 'bash'
+    args:
+      - -c
+      - |
+        set -eo pipefail
+        docker buildx build . \
+          --push \
+          --label "git-commit=${SHORT_SHA}" \
+          --tag us-docker.pkg.dev/teknoir/gcr.io/gcs-media-service:${BRANCH_NAME}-${SHORT_SHA}
+        if [ ${BRANCH_NAME} == 'main' ]; then
+          docker buildx build . \
+            --push \
+            --label "git-commit=${SHORT_SHA}" \
+            --tag us-docker.pkg.dev/teknoir/gcr.io/gcs-media-service:latest
+        fi
