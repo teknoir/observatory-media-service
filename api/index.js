@@ -7,16 +7,17 @@ router.get('/', (req, res) => {
     res.redirect(`${baseUrl}/test/videotest/boxer_property_3`);
 });
 
-router.get(/^\/test\/([a-zA-Z:/0-9._]*)/, function (req, res) {
-    let videoPath = `${req.protocol}://${req.get('host')}${baseUrl}/mp4/${req.params[0]}.mp4`
-    let imagePath = `${req.protocol}://${req.get('host')}${baseUrl}/jpeg/${req.params[0]}.jpeg`
+router.get(/^\/test\/([a-zA-Z:/0-9._-]*)/, function (req, res) {
+    let protocol = (req.get['host'] === 'localhost') ? 'http' : 'https'
+    let videoPath = `${protocol}://${req.get('host')}${baseUrl}/mp4/${req.params[0]}.mp4`
+    let imagePath = `${protocol}://${req.get('host')}${baseUrl}/jpeg/${req.params[0]}.jpeg`
     res.render('home', {
         videoPath: videoPath,
         imagePath: imagePath,
     });
 });
 
-router.get(/^\/mp4\/([a-zA-Z:/0-9._]*.mp4)/, async function (req, res) {
+router.get(/^\/mp4\/([a-zA-Z:/0-9._-]*.mp4)/, async function (req, res) {
     // Ensure there is a range given for the video (that it is being streamed)
     const range = req.headers.range;
     if (!range) {
@@ -64,7 +65,7 @@ router.get(/^\/mp4\/([a-zA-Z:/0-9._]*.mp4)/, async function (req, res) {
     }
 });
 
-router.get(/^\/jpeg\/([a-zA-Z:/0-9._]*.jpeg)/, async function (req, res) {
+router.get(/^\/jpeg\/([a-zA-Z:/0-9._-]*.jpeg)/, async function (req, res) {
     // // Ensure there is a range given for the video (that it is being streamed)
     // const range = req.headers.range;
     // if (!range) {

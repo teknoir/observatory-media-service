@@ -4,7 +4,7 @@ This app does the following:
 2. It serves only files that ends with '.mp4'
 3. It only serve mediafiles with contentType: 'video/mp4'
 4. It only serve mediafiles by streaming them, not downloading
-5. The API route is the file/objects path and filename on the bucket, ex: http://media-service/api/mp4/videos/boxer_property_3.mp4 becomes demostrations.teknoir.dev/videos/boxer_property_3.mp4
+5. The API route is the file/objects path and filename on the bucket, ex: http://teknoir.dev/demonstrations/media-service/api/mp4/videos/boxer_property_3.mp4 becomes demonstrations.teknoir.dev/videos/boxer_property_3.mp4
 
 # MP4 file requirements
 Files taken directly from the "NVR" has to be reencoded with new keyframes to work.
