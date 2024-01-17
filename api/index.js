@@ -10,7 +10,8 @@ router.get('/', (req, res) => {
 router.get(/^\/test\/([a-zA-Z:/0-9._-]*)/, function (req, res) {
     let protocol = (req.get['host'] === 'localhost') ? 'http' : 'https'
     let videoPath = `${protocol}://${req.get('host')}${baseUrl}/mp4/${req.params[0]}.mp4`
-    let imagePath = `${protocol}://${req.get('host')}${baseUrl}/jpeg/${req.params[0]}.jpeg`
+    let screenshotPath = req.params[0].replace('videos', 'snapshots').replace('video', 'snapshots')
+    let imagePath = `${protocol}://${req.get('host')}${baseUrl}/jpeg/${screenshotPath}.jpeg`
     res.render('home', {
         videoPath: videoPath,
         imagePath: imagePath,
