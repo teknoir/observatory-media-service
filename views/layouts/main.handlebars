@@ -5,22 +5,75 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Teknoir Media Server</title>
     <style>
-        body {
-            margin: 40px auto;
-            max-width: 650px;
-            line-height: 1.6;
-            font-size: 18px;
-            font-family: "Courier New", Courier, monospace;
-            color: #444;
-            padding: 0 10px;
+        :root {
+            --off-white: #E0DED9;
+            --faded-black: #1C1C1C;
+            --outrun-orange: #ED6D36;
+            --ocean-blue: #3B61BF;
+            --horizon-yellow: #E0AD1B;
+            --palm-tree-purple: #9B357D;
+            --deep-space-black: #000000;
+            --silver: #808080;
+            --light-silver: #b2b2b2;
+            --gold: #A58966;
         }
-        h2 {
-            line-height: 1.2;
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Suisse Light', 'Roboto Mono', monospace;
+            background-color: var(--faded-black);
+            color: var(--off-white);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 93vh;
+            overflow: hidden;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><g fill="none" stroke="%23222"><path d="M0 0h100v100H0z"/><path d="M100 0L0 100m0-100l100 100"/></g></svg>');
+            background-size: 20px 20px;
+        }
+
+        .logo {
+            width: 150px;
+        }
+
+        .container-fluid {
+            width: 100%;
+            padding-right: 15px;
+            padding-left: 15px;
+            padding-top: 15px;
+            padding-bottom: 15px;
+            margin-right: auto;
+            margin-left: auto;
+            margin-top: auto;
+            margin-bottom: auto;
+        }
+
+        .media-container {
+            width: 90%;
+            height: 90%;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--deep-space-black);
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+        }
+
+        .text-uppercase {
+            text-transform: uppercase !important;
         }
     </style>
 </head>
-
-<body>
-{{{body}}}
-</body>
+<div class="media-container">
+    <div class="container-fluid">
+        <a href="https://teknoir.ai?skip-intro=1">
+            <img src="https://teknoir.ai/wp-content/themes/teknoir/img/logo.png" class="logo" alt="">
+        </a>
+    </div>
+    {{{body}}}
+    <div class="container-fluid">
+        <div class="display-2 text-uppercase meta">Copyright ©2024 TEKNOIR All rights reserved</div>
+    </div>
+</div>
 </html>

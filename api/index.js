@@ -8,12 +8,28 @@ router.get('/', (req, res) => {
 });
 
 router.get(/^\/test\/([a-zA-Z:/0-9._-]*)/, function (req, res) {
-    let protocol = (req.get['host'] === 'localhost') ? 'http' : 'https'
+    let protocol = (req.hostname === 'localhost') ? 'http' : 'https'
     let videoPath = `${protocol}://${req.get('host')}${baseUrl}/mp4/${req.params[0]}.mp4`
     let screenshotPath = req.params[0].replace('videos', 'snapshots').replace('video', 'snapshots')
     let imagePath = `${protocol}://${req.get('host')}${baseUrl}/jpeg/${screenshotPath}.jpeg`
     res.render('home', {
         videoPath: videoPath,
+        imagePath: imagePath,
+    });
+});
+
+router.get(/^\/html\/([a-zA-Z:/0-9._-]*.mp4)/, function (req, res) {
+    let protocol = (req.hostname === 'localhost') ? 'http' : 'https'
+    let videoPath = `${protocol}://${req.get('host')}${baseUrl}/mp4/${req.params[0]}`
+    res.render('video', {
+        videoPath: videoPath,
+    });
+});
+
+router.get(/^\/html\/([a-zA-Z:/0-9._-]*.jpeg)/, function (req, res) {
+    let protocol = (req.hostname === 'localhost') ? 'http' : 'https'
+    let imagePath = `${protocol}://${req.get('host')}${baseUrl}/jpeg/${req.params[0]}`
+    res.render('image', {
         imagePath: imagePath,
     });
 });
@@ -67,13 +83,6 @@ router.get(/^\/mp4\/([a-zA-Z:/0-9._-]*.mp4)/, async function (req, res) {
 });
 
 router.get(/^\/jpeg\/([a-zA-Z:/0-9._-]*.jpeg)/, async function (req, res) {
-    // // Ensure there is a range given for the video (that it is being streamed)
-    // const range = req.headers.range;
-    // if (!range) {
-    //     res.status(400).send("Requires Range header");
-    // }
-
-    // get video metadata and size
     let imagePath = req.params[0];
     try {
         const storage = new Storage({projectId: process.env.GOOGLE_CLOUD_PROJECT});
@@ -83,20 +92,9 @@ router.get(/^\/jpeg\/([a-zA-Z:/0-9._-]*.jpeg)/, async function (req, res) {
         if (metadata.contentType != 'image/jpeg') {
             res.status(400).send("This service only serves content that is image/jpeg for now");
         }
-        // const videoSize = metadata.size;
-
-        // // Parse Range
-        // // Example: "bytes=32324-"
-        // const CHUNK_SIZE = 10 ** 6; // 1MB
-        // const start = Number(range.replace(/\D/g, ""));
-        // const end = Math.min(start + CHUNK_SIZE, videoSize - 1);
 
         // Create headers
-        // const contentLength = end - start + 1;
         const headers = {
-            // "Content-Range": `bytes ${start}-${end}/${videoSize}`,
-            // "Accept-Ranges": "bytes",
-            // "Content-Length": contentLength,
             "Content-Type": 'image/jpeg',
         };
 
