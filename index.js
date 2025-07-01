@@ -8,6 +8,8 @@ app.set('view engine', 'handlebars');
 app.set('views', './views');
 
 const baseUrl = process.env.BASE_URL || "/api"
+// Add middleware to parse JSON request bodies
+app.use(express.json());
 app.use(cors());
 app.use(baseUrl, require('./api'));
 
