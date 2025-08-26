@@ -26,7 +26,7 @@ router.get(/^\/html\/([a-zA-Z:/0-9._-]*.mp4)/, function (req, res) {
     });
 });
 
-router.get(/^\/html\/([a-zA-Z:/0-9._-]*.jpeg)/, function (req, res) {
+router.get(/^\/html\/([a-zA-Z:/0-9._-]*.(jpeg|jpg))/, function (req, res) {
     let protocol = (req.hostname === 'localhost') ? 'http' : 'https'
     let imagePath = `${protocol}://${req.get('host')}${baseUrl}/jpeg/${req.params[0]}`
     res.render('image', {
@@ -82,7 +82,7 @@ router.get(/^\/mp4\/([a-zA-Z:/0-9._-]*.mp4)/, async function (req, res) {
     }
 });
 
-router.get(/^\/jpeg\/([a-zA-Z:/0-9._-]*.jpeg)/, async function (req, res) {
+router.get(/^\/jpeg\/([a-zA-Z:/0-9._-]*.(jpeg|jpg))/, async function (req, res) {
     let imagePath = req.params[0];
     try {
         const storage = new Storage({projectId: process.env.GOOGLE_CLOUD_PROJECT});
