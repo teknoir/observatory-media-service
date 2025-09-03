@@ -74,6 +74,10 @@ router.get(/^\/mp4\/([a-zA-Z:/0-9._-]*.mp4)/, async function (req, res) {
         // create video read stream for this particular chunk
         const videoStream = remoteFile.createReadStream({ start, end });
 
+        videoStream.on('error', (streamErr) => {
+            console.error('Video stream error:', streamErr);
+        });
+
         // Stream the video chunk to the client
         videoStream.pipe(res);
     } catch (err) {
@@ -105,6 +109,11 @@ router.get(/^\/jpeg\/([a-zA-Z:/0-9._-]*.(jpeg|jpg))/, async function (req, res) 
         const imageStream = remoteFile.createReadStream();
 
         // Stream the video chunk to the client
+        imageStream.on('error', (streamErr) => {
+            console.error('Image stream error:', streamErr);
+        });
+
+        // Stream the image to the client
         imageStream.pipe(res);
     } catch (err) {
         console.log(err);
@@ -134,6 +143,10 @@ router.get(/^\/json\/([a-zA-Z:/0-9._-]*.json)/, async function (req, res) {
 
         // create read stream for this annotations file
         const annotationsStream = remoteFile.createReadStream();
+
+        annotationsStream.on('error', (streamErr) => {
+            console.error('JSON stream error:', streamErr);
+        });
 
         // Stream the annotation file to the client
         annotationsStream.pipe(res);
