@@ -6,10 +6,17 @@ steps:
       - -c
       - |
         set -eo pipefail
+
+        safeTag="${BRANCH_NAME}"
+        safeTag="$${safeTag//\//-}"
+        safeTag="$${safeTag//[^a-zA-Z0-9_.-]/}"
+        safeTag="$${safeTag/#[-.]/}"
+        safeTag="$${safeTag:0:128}"
+
         docker buildx build . \
           --push \
           --label "git-commit=${SHORT_SHA}" \
-          --tag us-docker.pkg.dev/teknoir/gcr.io/gcs-media-service:${BRANCH_NAME}-${SHORT_SHA}
+          --tag us-docker.pkg.dev/teknoir/gcr.io/gcs-media-service:${safeTag}-${SHORT_SHA}
         if [ ${BRANCH_NAME} == 'main' ]; then
           docker buildx build . \
             --push \
