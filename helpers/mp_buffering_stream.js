@@ -83,5 +83,4 @@ class MP4BufferingStream extends Transform {
     }
 }
 
-// module.exports = { MP4BufferingStream: FileBufferingStream };
 module.exports = { MP4BufferingStream };
