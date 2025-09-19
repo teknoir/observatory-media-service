@@ -194,7 +194,6 @@ router.get(/^\/annotated\/mp4\/([a-zA-Z:/0-9._-]*.mp4)/, annotatedMp4Validation,
 
         videoStream.on('data', (chunk) => {
             logger.debug(`GCS stream chunk received: ${chunk.length} bytes`);
-            hasReceivedGcsData = true;
             resetGcsTimeout();
         });
 
