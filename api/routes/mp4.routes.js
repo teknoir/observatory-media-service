@@ -23,7 +23,7 @@ router.get(/^\/mp4\/([a-zA-Z:/0-9._-]*.mp4)/, async function (req, res) {
     try {
         const storage = new Storage({
             projectId: process.env.GOOGLE_CLOUD_PROJECT,
-            keyFilename: '/teknoir-admin-credentials.json',
+            // keyFilename: '/teknoir-admin-credentials.json',
         });
         const bucket = storage.bucket(process.env.GCLOUD_STORAGE_BUCKET);
         const remoteFile = bucket.file(videoPath);
@@ -111,7 +111,7 @@ router.get(/^\/annotated\/mp4\/([a-zA-Z:/0-9._-]*.mp4)/, annotatedMp4Validation,
     try {
         const storage = new Storage({
             projectId: process.env.GOOGLE_CLOUD_PROJECT,
-            keyFilename: '/teknoir-admin-credentials.json',
+            // keyFilename: '/teknoir-admin-credentials.json',
         });
         const bucket = storage.bucket(process.env.GCLOUD_STORAGE_BUCKET);
         const remoteFile = bucket.file(videoPath);
