@@ -76,6 +76,17 @@ router.get(/^\/mp4\/([a-zA-Z:/0-9._-]*.mp4)/, async function (req, res) {
 
         videoStream.on('error', (streamErr) => {
             console.error('Video stream error:', streamErr);
+            if (!res.headersSent) {
+                res.status(500).send('Stream error');
+            }
+        });
+
+        videoStream.on('end', () => {
+            // console.log('Video stream ended');
+        });
+
+        req.on('close', () => {
+            videoStream.destroy();
         });
 
         // Stream the video chunk to the client
@@ -105,12 +116,22 @@ router.get(/^\/jpeg\/([a-zA-Z:/0-9._-]*.(jpeg|jpg))/, async function (req, res) 
         // HTTP Status 206 for Partial Content
         res.writeHead(206, headers);
 
-        // create video read stream for this particular chunk
+        // create image read stream
         const imageStream = remoteFile.createReadStream();
 
-        // Stream the video chunk to the client
         imageStream.on('error', (streamErr) => {
             console.error('Image stream error:', streamErr);
+            if (!res.headersSent) {
+                res.status(500).send('Stream error');
+            }
+        });
+
+        imageStream.on('end', () => {
+            // console.log('Image stream ended');
+        });
+
+        req.on('close', () => {
+            imageStream.destroy();
         });
 
         // Stream the image to the client
@@ -146,6 +167,17 @@ router.get(/^\/json\/([a-zA-Z:/0-9._-]*.json)/, async function (req, res) {
 
         annotationsStream.on('error', (streamErr) => {
             console.error('JSON stream error:', streamErr);
+            if (!res.headersSent) {
+                res.status(500).send('Stream error');
+            }
+        });
+
+        annotationsStream.on('end', () => {
+            // console.log('JSON stream ended');
+        });
+
+        req.on('close', () => {
+            annotationsStream.destroy();
         });
 
         // Stream the annotation file to the client
