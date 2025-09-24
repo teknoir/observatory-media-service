@@ -56,15 +56,24 @@ router.get(/^\/mp4\/([a-zA-Z:/0-9._-]*.mp4)/, async function (req, res) {
 
         videoStream.on('error', (streamErr) => {
             logger.error('Video stream error:', streamErr);
+            if (!res.headersSent) {
+                res.status(500).send('Stream error');
+            }
+        });
+
+        videoStream.on('end', () => {
+            // console.log('Video stream ended');
+        });
+
+        req.on('close', () => {
+            videoStream.destroy();
         });
 
         // Stream the video chunk to the client
         videoStream.pipe(res);
     } catch (err) {
         logger.error(err);
-        if (!res.headersSent) {
-            res.status(404).send(`File not found ${err}`);
-        }
+        res.status(404).send(`File not found ${err}`);
     }
 });
 

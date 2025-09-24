@@ -29,6 +29,17 @@ router.get(/^\/json\/([a-zA-Z:/0-9._-]*.json)/, async function (req, res) {
 
         annotationsStream.on('error', (streamErr) => {
             logger.error('JSON stream error:', streamErr);
+            if (!res.headersSent) {
+                res.status(500).send('Stream error');
+            }
+        });
+
+        annotationsStream.on('end', () => {
+            logger.debug('JSON stream ended');
+        });
+
+        req.on('close', () => {
+            annotationsStream.destroy();
         });
 
         // Stream the annotation file to the client

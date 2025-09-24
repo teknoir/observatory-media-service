@@ -23,12 +23,22 @@ router.get(/^\/jpeg\/([a-zA-Z:/0-9._-]*.(jpeg|jpg))/, async function (req, res) 
         // HTTP Status 206 for Partial Content
         res.writeHead(206, headers);
 
-        // create video read stream for this particular chunk
+        // create image read stream
         const imageStream = remoteFile.createReadStream();
 
-        // Stream the video chunk to the client
         imageStream.on('error', (streamErr) => {
             logger.error('Image stream error:', streamErr);
+            if (!res.headersSent) {
+                res.status(500).send('Stream error');
+            }
+        });
+
+        imageStream.on('end', () => {
+            logger.debug('Image stream ended');
+        });
+
+        req.on('close', () => {
+            imageStream.destroy();
         });
 
         // Stream the image to the client
