@@ -15,7 +15,9 @@ router.get(/^\/mp4\/([a-zA-Z:/0-9._-]*.mp4)/, async function (req, res) {
     // Ensure there is a range given for the video (that it is being streamed)
     const range = req.headers.range;
     if (!range) {
+        logger.warn("Range header missing");
         res.status(400).send("Requires Range header");
+        return;
     }
 
     // get video metadata and size
@@ -23,7 +25,7 @@ router.get(/^\/mp4\/([a-zA-Z:/0-9._-]*.mp4)/, async function (req, res) {
     try {
         const storage = new Storage({
             projectId: process.env.GOOGLE_CLOUD_PROJECT,
-            // keyFilename: '/teknoir-admin-credentials.json',
+            ...(process.env.GOOGLE_APPLICATION_CREDENTIALS ? { keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS } : {})
         });
         const bucket = storage.bucket(process.env.GCLOUD_STORAGE_BUCKET);
         const remoteFile = bucket.file(videoPath);
@@ -62,7 +64,7 @@ router.get(/^\/mp4\/([a-zA-Z:/0-9._-]*.mp4)/, async function (req, res) {
         });
 
         videoStream.on('end', () => {
-            // console.log('Video stream ended');
+            logger.debug('Video stream ended');
         });
 
         req.on('close', () => {
@@ -120,7 +122,7 @@ router.get(/^\/annotated\/mp4\/([a-zA-Z:/0-9._-]*.mp4)/, annotatedMp4Validation,
     try {
         const storage = new Storage({
             projectId: process.env.GOOGLE_CLOUD_PROJECT,
-            // keyFilename: '/teknoir-admin-credentials.json',
+            ...(process.env.GOOGLE_APPLICATION_CREDENTIALS ? { keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS } : {})
         });
         const bucket = storage.bucket(process.env.GCLOUD_STORAGE_BUCKET);
         const remoteFile = bucket.file(videoPath);

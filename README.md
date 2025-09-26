@@ -15,3 +15,22 @@ ffmpeg -i ParkingSurfaceSouth210_video00194.mp4 -codec:v libx264 \
     -c:a copy \
     -y ParkingSurfaceSouth210_video00194_reencoded.mp4
 ```
+
+# Test downloading mp4 file locally
+
+## Pass google credentials to the image
+```bash
+# Assuming there is creds.json file in ./creds directory
+```
+
+## Build and run docker container
+```bash
+docker build -t gcs-media-service .
+docker run -p 9982:8000 -e GOOGLE_APPLICATION_CREDENTIALS=/creds/creds.json -e GOOGLE_CLOUD_PROJECT=teknoir -e GCLOUD_STORAGE_BUCKET=victra-poc.teknoir.cloud -v ./creds:/creds -v ./tmp:/video -e LOG_LEVEL=debug --rm --name gcs-media gcs-media-service
+```
+
+## Make a request for a downloading
+
+```bash
+wget "http://localhost:9982/api/annotated/mp4/media/videos/nc0009-salefloor-270/line-crossing/2025-09-15T15-28-19.102Z.mp4?timestamp=2025-09-13T13:02:31.629Z&location=NC-Durham&camera=nc0009-salefloor-279&timezone=America/New_York" -O annotated_video1.mp4
+```
