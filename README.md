@@ -34,3 +34,9 @@ docker run -p 9982:8000 -e GOOGLE_APPLICATION_CREDENTIALS=/creds/creds.json -e G
 ```bash
 wget "http://localhost:9982/api/annotated/mp4/media/videos/nc0009-salefloor-270/line-crossing/2025-09-15T15-28-19.102Z.mp4?timestamp=2025-09-13T13:02:31.629Z&location=NC-Durham&camera=nc0009-salefloor-279&timezone=America/New_York" -O annotated_video1.mp4
 ```
+
+# Build image in cloud and push
+
+```bash
+gcloud builds submit . --config=cloudbuild.yaml --project=teknoir-mgmt --substitutions=SHORT_SHA="$(date +%Y%m%d-%H%M%S)",BRANCH_NAME="local"
+```
