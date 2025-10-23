@@ -32,7 +32,7 @@ class MP4BufferingStream extends Transform {
 
                     if (this.expectedFragmentSize !== null) {
                         // Pre-allocate buffer for the entire fragment
-                        this.buffer = Buffer.allocUnsafe(this.expectedFragmentSize);
+                        this.buffer = Buffer.alloc(this.expectedFragmentSize);
                         this.bufferFilled = 0;
 
                         // Copy header data into the fragment buffer
