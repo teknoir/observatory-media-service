@@ -152,13 +152,27 @@ router.get(/^\/annotated\/mp4\/([a-zA-Z:/0-9._-]*.mp4)/, annotatedMp4Validation,
         const startTimestampMs = startTimestamp.toMillis() + (startTimestamp.offset * 60 * 1000);
 
         // Create a read stream from GCS
-        const videoStream = remoteFile.createReadStream();
+        const videoStream = remoteFile.createReadStream({
+            highWaterMark: 2 * 1024 * 1024  // 2MB chunks instead of default 16KB
+        });
 
         // Timeout configuration
         const STREAM_TIMEOUT = 30000; // 30 seconds timeout
-        let gcsDataTimeout = null;
-        let responseDataTimeout = null;
-        let hasReceivedResponseData = false;
+
+        // Create placeholder for clearAllTimeouts function
+        // that is defined later to avoid hoisting issues
+        let clearAllTimeouts = () => {};
+
+        // Function to cleanup pipeline
+        const cleanupPipeline = () => {
+            clearAllTimeouts();
+            if (videoStream && !videoStream.destroyed) {
+                videoStream.destroy();
+            }
+            if (ffmpeg && !ffmpeg.killed) {
+                ffmpeg.kill('SIGKILL');
+            }
+        };
 
         // Function to handle timeout
         const handleTimeout = (reason) => {
@@ -168,52 +182,40 @@ router.get(/^\/annotated\/mp4\/([a-zA-Z:/0-9._-]*.mp4)/, annotatedMp4Validation,
             } else {
                 res.destroy(); // Force close the connection
             }
-            videoStream.destroy();
-            ffmpeg.kill('SIGKILL');
+            cleanupPipeline();
         };
 
-        // Monitor GCS data flow
-        const resetGcsTimeout = () => {
-            if (gcsDataTimeout) clearTimeout(gcsDataTimeout);
-            gcsDataTimeout = setTimeout(() => {
-                handleTimeout('No data received from GCS for 30 seconds');
-            }, STREAM_TIMEOUT);
-        };
+        // Track last activity timestamps
+        let lastGcsActivity = Date.now();
+        let lastResponseActivity = Date.now();
 
-        // Monitor response data flow
-        const resetResponseTimeout = () => {
-            if (responseDataTimeout) clearTimeout(responseDataTimeout);
-            responseDataTimeout = setTimeout(() => {
-                handleTimeout('No data sent to response for 30 seconds');
-            }, STREAM_TIMEOUT);
-        };
+        // Check for timeouts every 30 seconds
+        const timeoutCheckInterval = setInterval(() => {
+            const now = Date.now();
 
-        // Clear all timeouts
-        const clearAllTimeouts = () => {
-            if (gcsDataTimeout) {
-                clearTimeout(gcsDataTimeout);
-                gcsDataTimeout = null;
+            // Check if BOTH stages are idle for more than 30 seconds
+            // It's OK if one stage is idle (e.g., buffering complete but FFmpeg still processing)
+            if (now - lastGcsActivity > STREAM_TIMEOUT && now - lastResponseActivity > STREAM_TIMEOUT) {
+                clearInterval(timeoutCheckInterval);
+                handleTimeout('No data flow in pipeline for 30 seconds');
             }
-            if (responseDataTimeout) {
-                clearTimeout(responseDataTimeout);
-                responseDataTimeout = null;
+        }, 30000); // Check every 30 seconds
+
+        // Clear interval on cleanup
+        clearAllTimeouts = () => {
+            if (timeoutCheckInterval) {
+                clearInterval(timeoutCheckInterval);
             }
         };
-
-        // Start GCS timeout
-        resetGcsTimeout();
 
         videoStream.on('data', (chunk) => {
             logger.debug(`GCS stream chunk received: ${chunk.length} bytes`);
-            resetGcsTimeout();
+            lastGcsActivity = Date.now();
         });
 
         videoStream.on('end', () => {
             logger.debug('GCS stream ended');
-            if (gcsDataTimeout) {
-                clearTimeout(gcsDataTimeout);
-                gcsDataTimeout = null;
-            }
+            clearAllTimeouts();
         });
 
         const fileName = videoPath.split('/').pop();
@@ -289,14 +291,7 @@ router.get(/^\/annotated\/mp4\/([a-zA-Z:/0-9._-]*.mp4)/, annotatedMp4Validation,
 
         bufferStreamToResponse.on('data', (chunk) => {
             logger.debug(`Buffer to Response received ${chunk.length} bytes`);
-            
-            // Start response timeout after first data from FFmpeg
-            if (!hasReceivedResponseData) {
-                hasReceivedResponseData = true;
-                resetResponseTimeout();
-            } else {
-                resetResponseTimeout();
-            }
+            lastResponseActivity = Date.now();
         });
 
         bufferStreamToResponse.on('end', () => {
@@ -339,19 +334,16 @@ router.get(/^\/annotated\/mp4\/([a-zA-Z:/0-9._-]*.mp4)/, annotatedMp4Validation,
         // Handle video stream errors
         videoStream.on('error', (streamErr) => {
             logger.error('Video stream error:', streamErr);
-            clearAllTimeouts();
             if (!res.headersSent) {
                 res.status(500).send("Error reading the video file");
             }
-            ffmpeg.kill(); // Kill FFmpeg process on error
+            cleanupPipeline();
         });
 
         // Handle client disconnects
         res.on('close', () => {
             logger.info('Client disconnected');
-            clearAllTimeouts();
-            videoStream.destroy(); // Destroy the GCS stream
-            ffmpeg.kill(); // Kill the FFmpeg process
+            cleanupPipeline();
         });
 
         // Handle FFmpeg process exit
@@ -365,9 +357,27 @@ router.get(/^\/annotated\/mp4\/([a-zA-Z:/0-9._-]*.mp4)/, annotatedMp4Validation,
         // Handle response errors (e.g., EPIPE)
         res.on('error', (err) => {
             logger.error('Response error:', err);
-            clearAllTimeouts();
-            videoStream.destroy(); // Destroy the GCS stream
-            ffmpeg.kill(); // Kill the FFmpeg process
+            cleanupPipeline();
+        });
+
+        // Handle process interruption (Ctrl+C, SIGTERM)
+        const signalHandler = () => {
+            logger.info('Process interrupted, cleaning up pipeline');
+            cleanupPipeline();
+            if (!res.headersSent) {
+                res.status(499).send('Request interrupted');
+            } else {
+                res.destroy();
+            }
+        };
+
+        process.once('SIGINT', signalHandler);
+        process.once('SIGTERM', signalHandler);
+
+        // Clean up signal handlers when request completes
+        res.on('finish', () => {
+            process.removeListener('SIGINT', signalHandler);
+            process.removeListener('SIGTERM', signalHandler);
         });
     } catch (err) {
         logger.error(err);

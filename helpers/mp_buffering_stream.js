@@ -4,33 +4,80 @@ const logger = require('./logger');
 class MP4BufferingStream extends Transform {
     constructor(options) {
         super(options);
-        this.buffer = Buffer.alloc(0); // Initialize an empty buffer
+        this.buffer = null; // Pre-allocated buffer for current fragment
+        this.bufferFilled = 0; // How much of the buffer is filled
+        this.expectedFragmentSize = null; // Cache the expected fragment size
+        this.headerBuffer = Buffer.alloc(0); // Small buffer for reading headers
     }
 
     _transform(chunk, encoding, callback) {
-        // Append the new chunk to the buffer
-        this.buffer = Buffer.concat([this.buffer, chunk]);
-        logger.debug(`Buffer size: ${this.buffer.length} bytes`);
+        let chunkOffset = 0;
 
-        let offset = 0;
-        while (offset < this.buffer.length) {
-            // Determine the size of the next MP4 fragment
-            const fragmentSize = this.getFragmentSize(this.buffer, offset);
+        while (chunkOffset < chunk.length) {
+            // If we don't know the fragment size yet, accumulate header data
+            if (this.expectedFragmentSize === null) {
+                // Need to read at least 8 bytes for the header
+                const headerBytesNeeded = 8 - this.headerBuffer.length;
 
-            if (fragmentSize === null || offset + fragmentSize > this.buffer.length) {
-                // Not enough data for a complete fragment, wait for more data
-                break;
+                if (headerBytesNeeded > 0) {
+                    const headerBytesToCopy = Math.min(headerBytesNeeded, chunk.length - chunkOffset);
+                    const newHeaderData = chunk.slice(chunkOffset, chunkOffset + headerBytesToCopy);
+                    this.headerBuffer = Buffer.concat([this.headerBuffer, newHeaderData]);
+                    chunkOffset += headerBytesToCopy;
+                }
+
+                // Try to read the fragment size
+                if (this.headerBuffer.length >= 8) {
+                    this.expectedFragmentSize = this.getFragmentSize(this.headerBuffer, 0);
+
+                    if (this.expectedFragmentSize !== null) {
+                        // Pre-allocate buffer for the entire fragment
+                        this.buffer = Buffer.alloc(this.expectedFragmentSize);
+                        this.bufferFilled = 0;
+
+                        // Copy header data into the fragment buffer
+                        this.headerBuffer.copy(this.buffer, 0);
+                        this.bufferFilled = this.headerBuffer.length;
+                        logger.debug(`Pre-allocated buffer for fragment: ${this.expectedFragmentSize} bytes`);
+
+                        // Clear header buffer
+                        this.headerBuffer = Buffer.alloc(0);
+                        // Continue to fill the rest of the fragment
+                    } else {
+                        // Header parsed but fragment size still null (shouldn't happen)
+                        break;
+                    }
+                } else {
+                    // Not enough data yet, wait for more
+                    break;
+                }
             }
 
-            // Push the complete fragment downstream
-            this.push(this.buffer.slice(offset, offset + fragmentSize));
-            logger.debug(`Pushed fragment of size: ${fragmentSize} bytes`);
-            offset += fragmentSize;
-        }
+            // We know the fragment size, fill the pre-allocated buffer
+            if (this.expectedFragmentSize !== null && chunkOffset < chunk.length) {
+                const remainingFragmentSpace = this.expectedFragmentSize - this.bufferFilled;
+                const remainingChunkData = chunk.length - chunkOffset;
+                const bytesToCopy = Math.min(remainingFragmentSpace, remainingChunkData);
 
-        // Retain the remaining incomplete data in the buffer
-        this.buffer = this.buffer.slice(offset);
-        logger.debug(`Remaining buffer size: ${this.buffer.length} bytes`);
+                chunk.copy(this.buffer, this.bufferFilled, chunkOffset, chunkOffset + bytesToCopy);
+                this.bufferFilled += bytesToCopy;
+                chunkOffset += bytesToCopy;
+
+                logger.debug(`Buffer filled: ${this.bufferFilled} / ${this.expectedFragmentSize} bytes`);
+
+                // Check if fragment is complete
+                if (this.bufferFilled === this.expectedFragmentSize) {
+                    // Push the complete fragment downstream
+                    this.push(this.buffer);
+                    logger.debug(`Pushed fragment of size: ${this.expectedFragmentSize} bytes`);
+
+                    // Reset for next fragment
+                    this.buffer = null;
+                    this.bufferFilled = 0;
+                    this.expectedFragmentSize = null;
+                }
+            }
+        }
 
         callback();
     }
@@ -57,11 +104,7 @@ class MP4BufferingStream extends Transform {
         // Handle the `mdat` atom
         if (type === 'mdat') {
             logger.debug(`Detected mdat atom of size: ${size}`);
-            if (buffer.length - offset < size) {
-                logger.debug(`Waiting for full mdat atom: ${size} bytes`);
-                return null; // Wait for the full `mdat` atom
-            }
-            return size; // Return the size of the `mdat` atom
+            return size; // Return the size - caller will check if buffer has enough data
         }
 
         // Handle the `free` atom
