@@ -159,6 +159,10 @@ router.get(/^\/annotated\/mp4\/([a-zA-Z:/0-9._-]*.mp4)/, annotatedMp4Validation,
         // Timeout configuration
         const STREAM_TIMEOUT = 30000; // 30 seconds timeout
 
+        // Create placeholder for clearAllTimeouts function
+        // that is defined later to avoid hoisting issues
+        let clearAllTimeouts = () => {};
+
         // Function to cleanup pipeline
         const cleanupPipeline = () => {
             clearAllTimeouts();
@@ -198,7 +202,7 @@ router.get(/^\/annotated\/mp4\/([a-zA-Z:/0-9._-]*.mp4)/, annotatedMp4Validation,
         }, 30000); // Check every 30 seconds
 
         // Clear interval on cleanup
-        const clearAllTimeouts = () => {
+        clearAllTimeouts = () => {
             if (timeoutCheckInterval) {
                 clearInterval(timeoutCheckInterval);
             }
