@@ -12,7 +12,7 @@
   "dependencies": {
     "@google-cloud/storage": "^7.7.0",
     "cors": "^2.8.5",
-    "express": "^4.17.1",
+    "express": "^4.22.3",
     "express-handlebars": "^7.1.2",
     "express-validator": "^7.2.1",
     "luxon": "^3.7.2",
